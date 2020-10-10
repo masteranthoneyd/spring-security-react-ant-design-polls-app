@@ -1,0 +1,13 @@
+version: "2"
+services:
+  nacos:
+    image: nacos/nacos-server:latest
+    container_name: nacos-standalone
+    environment:
+      - PREFER_HOST_MODE=hostname
+      - MODE=standalone
+      - JVM_XMX=1g
+      - JVM_XMS=1g
+      - JVM_XMN=500m
+    ports:
+      - "8848:8848"

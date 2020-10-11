@@ -1,0 +1,13 @@
+server:
+  compression:
+    enabled: true
+
+spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+app:
+  jwtSecret: JWTSuperSecretKey
+  jwtExpirationInMs: 604800000

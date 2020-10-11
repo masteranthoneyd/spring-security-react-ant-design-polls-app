@@ -4,6 +4,7 @@ import com.example.polls.security.CustomUserDetailsService;
 import com.example.polls.security.JwtAuthenticationEntryPoint;
 import com.example.polls.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -93,6 +94,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/api/user/checkUsernameAvailability", "/api/user/checkEmailAvailability")
                         .permitAll()
                     .antMatchers(HttpMethod.GET, "/api/polls/**", "/api/users/**")
+                        .permitAll()
+                    .requestMatchers(EndpointRequest.toAnyEndpoint())
                         .permitAll()
                     .anyRequest()
                         .authenticated();

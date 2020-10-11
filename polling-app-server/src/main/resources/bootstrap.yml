@@ -1,9 +1,25 @@
 spring:
   application:
     name: polls
+  profiles:
+    active: test
   cloud:
     nacos:
       server-addr: 127.0.0.1:8848 # 注意端口不能省略
       config:
         file-extension: yml
         namespace: test
+        shared-configs:
+          - data-id: common.yml
+            group: SHARED_GROUP
+            refresh: false
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    shutdown:
+      enabled: true

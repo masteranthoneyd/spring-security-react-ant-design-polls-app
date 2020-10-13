@@ -1,36 +1,19 @@
-# auto detects a good number of processes to run
-worker_processes auto;
-
-#Provides the configuration file context in which the directives that affect connection processing are specified.
-events {
-    # Sets the maximum number of simultaneous connections that can be opened by a worker process.
-    worker_connections 8000;
-    # Tells the worker to accept multiple connections at a time
-    multi_accept on;
-}
-
-
-http {
-    # what times to include
-    include       /etc/nginx/mime.types;
-    # what is the default one
-    default_type  application/octet-stream;
-
-    # Sets the path, format, and configuration for a buffered log write
-    log_format compression '$remote_addr - $remote_user [$time_local] '
-        '"$request" $status $upstream_addr '
-        '"$http_referer" "$http_user_agent"';
-
-    server {
+server {
         # listen on port 80
         listen 80;
+        server_name  _;
 
-        # save logs here
-        access_log /var/log/nginx/access.log compression;
+        # 转发后端接口
+        location /backend/ {
+            proxy_set_header   Host             $host:80;
+            proxy_set_header   x-forwarded-for  $remote_addr;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_pass ${API_ENDPOINT}/;
+        }
 
         # nginx root directory
-        root /var/www;
-        
+        root /var/www/;
+
         # what file to server as index
         index index.html index.htm;
 
@@ -59,5 +42,4 @@ http {
         location ~ ^.+\..+$ {
             try_files $uri =404;
         }
-    }
 }

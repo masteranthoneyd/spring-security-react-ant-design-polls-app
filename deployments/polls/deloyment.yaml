@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polls
+  labels:
+    app: polls
+    version: v1.0
+  namespace: prod
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: polls
+      version: v1.0
+  minReadySeconds: 3 # 指定新创建的 Pod 在没有任意容器崩溃情况下的最小就绪时间, 默认值为 0(Pod 在准备就绪后立即将被视为可用)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: polls
+      labels:
+        app: polls
+        version: v1.0
+    spec:
+      affinity: # 亲和性调度
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - polls
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 30  # 优雅终止宽限期, 默认30秒
+      containers:
+        - name: polls
+          image: registry-vpc.cn-zhangjiakou.aliyuncs.com/yangbingdong/polls:0.0.1
+          imagePullPolicy: Always  # 每次启动时检查和更新（从registery）images的策略, 三个选择Always()/Never/IfNotPresent
+          ports:
+            - name: http # 端口配置名称, 在 Service -> target port 可以指定端口或者使用该名称
+              containerPort: 8080
+              protocol: TCP  #端口协议, 支持TCP和UDP, 默认TCP
+          lifecycle: # 生命周期管理
+            preStop: # 容器终止之前立即被调用
+              exec:
+                command: [ "/usr/bin/curl","-X","POST", "http://localhost:8081/actuator/shutdown" ]
+          startupProbe: # 慢启动容器保护, 一旦成功后, 存活探测任务就会接管对容器的探测
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            failureThreshold: 10
+            periodSeconds: 15
+          livenessProbe: # pod存活检查, 失败的pod将从k8s中终止并启动新的pod
+            httpGet: # 通过httpget检查健康, 返回200-399之间, 则认为容器正常
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 5  #表明第一次检测在容器启动后多长时间后开始, 默认0秒
+            timeoutSeconds: 10  #检测的超时时间, 默认1秒
+            periodSeconds: 15  #检查间隔时间, 默认10秒
+          readinessProbe: # pod就绪探测, 当pod中所有容器就绪后, 流量才会进来, 否则将从 service 中移除
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 15
+          resources: # 资源限制管理
+            requests: # 容器运行时, 最低资源需求, 也就是说最少需要多少资源容器才能正常运行
+              cpu: 100m  # CPU资源(核数), 两种方式, 浮点数或者是整数+m, 0.1=100m, 最少值为0.001核(1m)
+              memory: 512Mi  # 内存使用量
+            limits: #资源限制
+              cpu: 1000m
+              memory: 2048Mi
+          env: #指定容器中的环境变量
+            - name: JAVA_OPTS
+              value: "-Xmx1g -Xms1g"
+          args: #启动容器的命令参数, 对应 Dockerfile 中 CMD 参数
+            - --spring.devtools.add-properties=false
+            - --management.endpoints.web.exposure.include=*
+            - --management.endpoint.shutdown.enabled=true
+            - --management.server.port=8081
+            - --spring.cloud.nacos.config.enabled=true
+            - --spring.cloud.nacos.server-addr=192.168.0.241:8848
+            - --spring.cloud.nacos.config.namespace=prod
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polls
+  labels:
+    app: polls
+  namespace: prod
+spec:
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: polls

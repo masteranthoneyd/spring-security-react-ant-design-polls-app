@@ -1,0 +1,14 @@
+global:
+  image:
+    imagePullPolicy: "Always"
+    repository: registry-vpc.cn-zhangjiakou.aliyuncs.com/yangbingdong
+
+  javaOpts: "-Xmx1g -Xms1g"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1500Mi

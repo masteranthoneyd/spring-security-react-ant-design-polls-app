@@ -1,0 +1,105 @@
+{{- $appName := .Values.app.name -}}
+  {{- $appVersion := .Values.app.version | default .Chart.AppVersion -}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $appName }}-{{ $appVersion }}
+  labels:
+    app: {{ $appName }}
+    version: {{ $appVersion }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicas }}
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: {{ $appName }}
+      version: {{ $appVersion }}
+      release: {{ .Release.Name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: {{ $appName }}
+      labels:
+        app: {{ $appName }}
+        version: {{ $appVersion }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ $appName }}
+          image: "{{ .Values.app.image.repository | default .Values.global.image.repository }}/{{ $appName }}:{{ .Values.app.image.tag }}"
+          imagePullPolicy: {{ .Values.global.image.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "/usr/bin/curl","-X","POST", "http://localhost:8081/actuator/shutdown" ]
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            failureThreshold: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 15
+          {{- with .Values.resources }}
+          resources:
+          {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if not .Values.resources }}
+          {{- with .Values.global.resources }}
+          resources:
+          {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          env:
+            - name: JAVA_OPTS
+              value: {{ .Values.javaOpts | default .Values.global.javaOpts | quote }}
+          args:
+            - --spring.devtools.add-properties=false
+            - --management.endpoints.web.exposure.include=*
+            - --management.endpoint.shutdown.enabled=true
+            - --management.server.port=8081
+            {{- with .Values.args }}
+          {{ toYaml . | nindent 12 }}
+      {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+  {{- end }}

@@ -1,0 +1,38 @@
+app:
+  name: <changeme>
+  #  version: "v1.0"
+  image:
+    imagePullPolicy: "ALWAYS"
+    name: ""
+    repository: ""
+    tag: <changeme>
+
+replicas: 1
+javaOpts: "-Xmx1g -Xms1g"
+
+
+args: {}
+env: {}
+resources: {}
+volumes: {}
+volumeMounts: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+
+service:
+  enabled: true
+  name: "" # left empty if use app.name
+  type: ClusterIP
+  port: 8080
+
+
+ingress:
+  enabled: false
+  name: "" # left empty if use app.name
+  annotations: {}
+  path: /
+  hosts:
+    - <changeme>

@@ -1,14 +1,15 @@
-apiVersion: v2
-name: polls
-description: A Helm chart for polls
+boot2:
+  app:
+    name: polls
+    #version: "v1.0"
+    image:
+      tag: 0.0.1
 
-type: application
-
-version: 0.0.1
-
-appVersion: 1.0.0
-
-dependencies:
-  - name: boot2
-    version: 1.0.8
-    repository: http://charts.yangbingdong.com
+  args:
+    - --spring.cloud.nacos.config.enabled=true
+    - --spring.cloud.nacos.server-addr=192.168.0.241:8848
+    - --spring.cloud.nacos.config.namespace=prod
+  ingress:
+    enabled: true
+    hosts:
+      - polls-server.yangbingdong.com
